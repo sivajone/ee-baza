@@ -253,7 +253,7 @@
                 if (item.diagram && item.diagram.present === true && item.diagram.image) {
                     diagramHtml = `
                         <div class="diagram-container">
-                            <img src="${'./static/' + item.diagram.image}" alt="${item.diagram.image.alt}" class="question-diagram">
+                            <img src="${'./static/' + item.diagram.image.source}" alt="${item.diagram.image.alt}" class="question-diagram">
                         </div>
                     `;
                 }
