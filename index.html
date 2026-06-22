@@ -282,19 +282,39 @@
                     `;
                 }
 
-                const choicesHtml = (item.choices || []).map(choice => {
-                    const isCorrect = choice.id === correctAnswerId;
-                    return `
-                        <li class="${isCorrect ? 'correct' : ''}">
-                            <span class="choice-id">${choice.id}.</span> 
-                            <span class="choice-text">${choice.text}</span>
-                        </li>
+                let choicesHtml = '';
+
+                // Sprawdzamy, czy pytanie ma warianty wyboru
+                if (item.choices && item.choices.length > 0) {
+                    const listItems = item.choices.map(choice => {
+                        const isCorrect = Array.isArray(correctAnswerId) 
+                            ? correctAnswerId.includes(choice.id) 
+                            : choice.id === correctAnswerId;
+                            
+                        return `
+                            <li class="${isCorrect ? 'correct' : ''}">
+                                <span class="choice-id">${choice.id}.</span> 
+                                <span class="choice-text">${choice.text}</span>
+                            </li>
+                        `;
+                    }).join('');
+                    choicesHtml = `<ul class="choices">${listItems}</ul>`;
+                } 
+                // Jeśli nie ma wariantów, a jest odpowiedź wpisywana ręcznie/obliczeniowa
+                else if (item.answer && item.answer.value !== undefined && item.answer.value !== null) {
+                    const unit = item.answer.unit ? ` ${item.answer.unit}` : '';
+                    const tolerance = item.answer.tolerance ? ` (± ${item.answer.tolerance})` : '';
+                    const val = Array.isArray(item.answer.value) ? item.answer.value.join(', ') : item.answer.value;
+                    
+                    choicesHtml = `
+                        <div style="padding: 12px 15px; background-color: var(--correct-bg); border: 1px solid var(--correct-border); color: var(--correct-text); border-radius: 6px; font-weight: 600; margin-bottom: 20px;">
+                            Poprawna odpowiedź: ${val}${unit}${tolerance}
+                        </div>
                     `;
-                }).join('');
+                }
 
                 const card = document.createElement('div');
                 card.className = 'card';
-                // Dodana zmienna ${diagramHtml} pod pytaniem
                 card.innerHTML = `
                     <div class="badge ${isConfirmed ? 'confirmed' : 'unconfirmed'}">
                         ${isConfirmed ? '✓ Potwierdzone' : '⚠ Niepotwierdzone'}
@@ -302,9 +322,7 @@
                     <div class="topic">${item.topic || 'Brak przypisanego tematu'}</div>
                     <h3 class="question">${item.question || 'Brak treści pytania'}</h3>
                     ${diagramHtml}
-                    <ul class="choices">
-                        ${choicesHtml}
-                    </ul>
+                    ${choicesHtml}
                     ${item.hint ? `<div class="hint"><strong>Podpowiedź:</strong> ${item.hint}</div>` : ''}
                 `;
 
