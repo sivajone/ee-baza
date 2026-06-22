@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyszukiwarka Pytań JSON</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --correct-bg: #d4edda;
+            --correct-border: #c3e6cb;
+            --correct-text: #155724;
+            --confirmed: #28a745;
+            --unconfirmed: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #fff;
+        }
+
+        .status {
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .status.loading { background-color: #e2e3e5; color: #383d41; }
+        .status.success { background-color: #d4edda; color: #155724; }
+        .status.error { background-color: #f8d7da; color: #721c24; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .badge {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge.confirmed { background-color: var(--confirmed); }
+        .badge.unconfirmed { background-color: var(--unconfirmed); }
+
+        .topic {
+            font-size: 0.85em;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-right: 120px;
+        }
+
+        .question {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
+
+        .choices {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .choices li {
+            padding: 12px 15px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            gap: 15px;
+            background: #f8f9fa;
+        }
+
+        .choices li.correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-border);
+            color: var(--correct-text);
+            font-weight: 600;
+        }
+
+        .choice-id {
+            font-weight: bold;
+            min-width: 25px;
+        }
+
+        .hint {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #495057;
+            border-left: 4px solid #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="panel">
+            <div id="status-msg" class="status loading">Ładowanie danych ze wszystkich zestawów...</div>
+            
+            <div class="input-group">
+                <input type="text" id="filter-topic" placeholder="🔍 Szukaj w temacie (topic)...">
+                <input type="text" id="filter-question" placeholder="🔍 Szukaj w pytaniu (question)...">
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // TUTAJ WPROWADŹ LINKI DO SWOICH PLIKÓW JSON
+        const jsonUrls = [
+            './static/extracted.json',
+            './static/extracted_2.json',
+            './static/extracted_3.json',
+            './static/extracted_4.json',
+            './static/extracted_5.json',
+            './static/extracted_6.json'
+        ];
+
+        let quizData = [];
+
+        // Funkcja pobierająca wszystkie pliki na raz
+        async function loadAllData() {
+            const statusMsg = document.getElementById('status-msg');
+            const resultsContainer = document.getElementById('results');
+
+            try {
+                // Równoległe pobieranie wszystkich plików z tablicy
+                const fetchPromises = jsonUrls.map(url => 
+                    fetch(url).then(response => {
+                        if (!response.ok) throw new Error(`Błąd HTTP: ${response.status} dla ${url}`);
+                        return response.json();
+                    })
+                );
+
+                // Czekamy na zakończenie wszystkich żądań
+                // Czekamy na zakończenie wszystkich żądań
+                const allResults = await Promise.all(fetchPromises);
+
+                // Wyciągamy tylko zawartość klucza 'questions' z każdego JSON-a 
+                // i łączymy je w jedną, płaską tablicę
+                quizData = allResults.flatMap(data => data.questions ? data.questions : []);
+
+                // Aktualizacja statusu
+                statusMsg.className = 'status success';
+                statusMsg.textContent = `Pomyślnie wczytano ${quizData.length} pytań z ${jsonUrls.length} plików.`;
+
+                // Wyświetlamy pobrane dane
+                renderData();
+            } catch (error) {
+                console.error('Błąd podczas pobierania danych:', error);
+                statusMsg.className = 'status error';
+                statusMsg.textContent = 'Wystąpił błąd podczas pobierania jednego z plików JSON. Sprawdź konsolę.';
+            }
+        }
+
+        // Funkcja renderująca karty z uwzględnieniem filtrów
+        function renderData() {
+            const filterTopic = document.getElementById('filter-topic').value.toLowerCase();
+            const filterQuestion = document.getElementById('filter-question').value.toLowerCase();
+            const resultsContainer = document.getElementById('results');
+            
+            resultsContainer.innerHTML = '';
+
+            const filteredData = quizData.filter(item => {
+                const topicText = item.topic ? item.topic.toLowerCase() : '';
+                const questionText = item.question ? item.question.toLowerCase() : '';
+                
+                return topicText.includes(filterTopic) && questionText.includes(filterQuestion);
+            });
+
+            if (filteredData.length === 0 && quizData.length > 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #666;">Brak wyników spełniających kryteria.</p>';
+                return;
+            }
+
+            filteredData.forEach(item => {
+                const isConfirmed = item.answer && item.answer.confirmed === true;
+                const correctAnswerId = item.answer ? item.answer.value : null;
+
+                const choicesHtml = (item.choices || []).map(choice => {
+                    const isCorrect = choice.id === correctAnswerId;
+                    return `
+                        <li class="${isCorrect ? 'correct' : ''}">
+                            <span class="choice-id">${choice.id}.</span> 
+                            <span class="choice-text">${choice.text}</span>
+                        </li>
+                    `;
+                }).join('');
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="badge ${isConfirmed ? 'confirmed' : 'unconfirmed'}">
+                        ${isConfirmed ? '✓ Potwierdzone' : '⚠ Niepotwierdzone'}
+                    </div>
+                    <div class="topic">${item.topic || 'Brak przypisanego tematu'}</div>
+                    <h3 class="question">${item.question || 'Brak treści pytania'}</h3>
+                    <ul class="choices">
+                        ${choicesHtml}
+                    </ul>
+                    ${item.hint ? `<div class="hint"><strong>Podpowiedź:</strong> ${item.hint}</div>` : ''}
+                `;
+                
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // Nasłuchiwacze zdarzeń dla pól filtrowania
+        document.getElementById('filter-topic').addEventListener('input', renderData);
+        document.getElementById('filter-question').addEventListener('input', renderData);
+
+        // Uruchomienie pobierania przy starcie
+        window.onload = loadAllData;
+    </script>
+</body>
+</html>
