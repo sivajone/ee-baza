@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +35,7 @@
             background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
         }
 
@@ -75,21 +76,32 @@
         }
 
         .question-diagram {
-            max-width: 100%; 
-            height: auto;    
+            max-width: 100%;
+            height: auto;
             display: block;
-            margin: 0 auto;  
+            margin: 0 auto;
         }
-        
-        .status.loading { background-color: #e2e3e5; color: #383d41; }
-        .status.success { background-color: #d4edda; color: #155724; }
-        .status.error { background-color: #f8d7da; color: #721c24; }
+
+        .status.loading {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
 
         .card {
             background: var(--card-bg);
             padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
             position: relative;
         }
@@ -105,8 +117,13 @@
             color: white;
         }
 
-        .badge.confirmed { background-color: var(--confirmed); }
-        .badge.unconfirmed { background-color: var(--unconfirmed); }
+        .badge.confirmed {
+            background-color: var(--confirmed);
+        }
+
+        .badge.unconfirmed {
+            background-color: var(--unconfirmed);
+        }
 
         .topic {
             font-size: 0.85em;
@@ -162,15 +179,15 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
         <div class="panel">
             <div id="status-msg" class="status loading">Ładowanie danych ze wszystkich zestawów...</div>
-            
+
             <div class="input-group">
-                <input type="text" id="filter-topic" placeholder="🔍 Szukaj w temacie (topic)...">
-                <input type="text" id="filter-question" placeholder="🔍 Szukaj w pytaniu (question)...">
+                <input type="text" id="filter-search" placeholder="🔍 Szukaj w temacie lub pytaniu...">
             </div>
         </div>
 
@@ -197,7 +214,7 @@
 
             try {
                 // Równoległe pobieranie wszystkich plików z tablicy
-                const fetchPromises = jsonUrls.map(url => 
+                const fetchPromises = jsonUrls.map(url =>
                     fetch(url).then(response => {
                         if (!response.ok) throw new Error(`Błąd HTTP: ${response.status} dla ${url}`);
                         return response.json();
@@ -227,17 +244,24 @@
 
         // Funkcja renderująca karty z uwzględnieniem filtrów
         function renderData() {
-            const filterTopic = document.getElementById('filter-topic').value.toLowerCase();
-            const filterQuestion = document.getElementById('filter-question').value.toLowerCase();
+            // Pobranie wartości z jednego pola
+            const searchText = document.getElementById('filter-search').value.toLowerCase().trim();
             const resultsContainer = document.getElementById('results');
-            
+
             resultsContainer.innerHTML = '';
 
             const filteredData = quizData.filter(item => {
+                if (!searchText) return true; // Puste pole = pokaż wszystko
+
                 const topicText = item.topic ? item.topic.toLowerCase() : '';
                 const questionText = item.question ? item.question.toLowerCase() : '';
-                
-                return topicText.includes(filterTopic) && questionText.includes(filterQuestion);
+
+                // Połączenie tekstów
+                const combinedText = `${topicText} ${questionText}`;
+
+                // Sprawdzanie czy każde wpisane słowo znajduje się w tekście
+                const searchTerms = searchText.split(/\s+/);
+                return searchTerms.every(term => combinedText.includes(term));
             });
 
             if (filteredData.length === 0 && quizData.length > 0) {
@@ -283,17 +307,18 @@
                     </ul>
                     ${item.hint ? `<div class="hint"><strong>Podpowiedź:</strong> ${item.hint}</div>` : ''}
                 `;
-                
+
                 resultsContainer.appendChild(card);
             });
         }
 
         // Nasłuchiwacze zdarzeń dla pól filtrowania
-        document.getElementById('filter-topic').addEventListener('input', renderData);
-        document.getElementById('filter-question').addEventListener('input', renderData);
+        // Zastąp dwa stare listenery tym jednym:
+        document.getElementById('filter-search').addEventListener('input', renderData);
 
         // Uruchomienie pobierania przy starcie
         window.onload = loadAllData;
     </script>
 </body>
+
 </html>
