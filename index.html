@@ -6,7 +6,7 @@
     <title>Wyszukiwarka Pytań JSON</title>
     <style>
         :root {
-            --primary: #0056b3;
+            --primary: #0056b31;
             --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --correct-bg: #d4edda;
@@ -65,6 +65,22 @@
             border-radius: 4px;
         }
 
+        .diagram-container {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid var(--border-color, #e9ecef);
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+
+        .question-diagram {
+            max-width: 100%; 
+            height: auto;    
+            display: block;
+            margin: 0 auto;  
+        }
+        
         .status.loading { background-color: #e2e3e5; color: #383d41; }
         .status.success { background-color: #d4edda; color: #155724; }
         .status.error { background-color: #f8d7da; color: #721c24; }
@@ -210,28 +226,19 @@
         }
 
         // Funkcja renderująca karty z uwzględnieniem filtrów
-        function renderData() {
-            const filterTopic = document.getElementById('filter-topic').value.toLowerCase();
-            const filterQuestion = document.getElementById('filter-question').value.toLowerCase();
-            const resultsContainer = document.getElementById('results');
-            
-            resultsContainer.innerHTML = '';
-
-            const filteredData = quizData.filter(item => {
-                const topicText = item.topic ? item.topic.toLowerCase() : '';
-                const questionText = item.question ? item.question.toLowerCase() : '';
-                
-                return topicText.includes(filterTopic) && questionText.includes(filterQuestion);
-            });
-
-            if (filteredData.length === 0 && quizData.length > 0) {
-                resultsContainer.innerHTML = '<p style="text-align: center; color: #666;">Brak wyników spełniających kryteria.</p>';
-                return;
-            }
-
-            filteredData.forEach(item => {
+        function renderData() {filteredData.forEach(item => {
                 const isConfirmed = item.answer && item.answer.confirmed === true;
                 const correctAnswerId = item.answer ? item.answer.value : null;
+
+                // Sprawdzanie i generowanie kodu dla obrazka
+                let diagramHtml = '';
+                if (item.diagram && item.diagram.present === true && item.diagram.image) {
+                    diagramHtml = `
+                        <div class="diagram-container">
+                            <img src="${'./static/' + item.diagram.image}" alt="${item.diagram.image.alt}" class="question-diagram">
+                        </div>
+                    `;
+                }
 
                 const choicesHtml = (item.choices || []).map(choice => {
                     const isCorrect = choice.id === correctAnswerId;
@@ -245,12 +252,14 @@
 
                 const card = document.createElement('div');
                 card.className = 'card';
+                // Dodana zmienna ${diagramHtml} pod pytaniem
                 card.innerHTML = `
                     <div class="badge ${isConfirmed ? 'confirmed' : 'unconfirmed'}">
                         ${isConfirmed ? '✓ Potwierdzone' : '⚠ Niepotwierdzone'}
                     </div>
                     <div class="topic">${item.topic || 'Brak przypisanego tematu'}</div>
                     <h3 class="question">${item.question || 'Brak treści pytania'}</h3>
+                    ${diagramHtml}
                     <ul class="choices">
                         ${choicesHtml}
                     </ul>
