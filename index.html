@@ -226,7 +226,25 @@
         }
 
         // Funkcja renderująca karty z uwzględnieniem filtrów
-        function renderData() {filteredData.forEach(item => {
+        function renderData() {
+            const filterTopic = document.getElementById('filter-topic').value.toLowerCase();
+            const filterQuestion = document.getElementById('filter-question').value.toLowerCase();
+            const resultsContainer = document.getElementById('results');
+            
+            resultsContainer.innerHTML = '';
+
+            const filteredData = quizData.filter(item => {
+                const topicText = item.topic ? item.topic.toLowerCase() : '';
+                const questionText = item.question ? item.question.toLowerCase() : '';
+                
+                return topicText.includes(filterTopic) && questionText.includes(filterQuestion);
+            });
+
+            if (filteredData.length === 0 && quizData.length > 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #666;">Brak wyników spełniających kryteria.</p>';
+                return;
+            }
+            filteredData.forEach(item => {
                 const isConfirmed = item.answer && item.answer.confirmed === true;
                 const correctAnswerId = item.answer ? item.answer.value : null;
 
